@@ -12,9 +12,11 @@
     "Snippets"
   ],
   "activationEvents": [
-    "onLanguage:dart"
+    "onLanguage:dart",
+    "onView:flutterWrappers"
   ],
   "main": "./extension.js",
+  "icon": "resources/icon.png",
   "contributes": {
     "commands": [
       {
@@ -44,8 +46,30 @@
       {
         "command": "wrapping.showWidgetsMenu",
         "title": "Wrap with Widget..."
+      },
+      {
+        "command": "flutterWrappers.refresh",
+        "title": "Refresh",
+        "icon": "$(refresh)"
       }
     ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "flutter-wrappers",
+          "title": "Flutter Wrappers",
+          "icon": "resources/flutter-logo.svg"
+        }
+      ]
+    },
+    "views": {
+      "flutter-wrappers": [
+        {
+          "id": "flutterWrappers",
+          "name": "Available Wrappers"
+        }
+      ]
+    },
     "menus": {
       "editor/context": [
         {
@@ -78,6 +102,13 @@
         {
           "command": "wrapping.wrapWithFlexible",
           "group": "widgets@6"
+        }
+      ],
+      "view/title": [
+        {
+          "command": "flutterWrappers.refresh",
+          "when": "view == flutterWrappers",
+          "group": "navigation"
         }
       ]
     },

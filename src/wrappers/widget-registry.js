@@ -1,43 +1,43 @@
 const { getIndentation } = require('../utils');
 
 /**
- * Registro de todos los widgets disponibles para envolver
+ * Registry of all available widgets to wrap with
  */
 const widgetWrappers = [
     {
         id: 'wrapping.wrapWithExpanded',
         title: 'Expanded',
-        fullTitle: 'Wrapped with Expanded',
+        fullTitle: 'Wrap with Expanded',
         snippet: (widget) => `Expanded(\n${getIndentation(widget)}  child: ${widget},\n${getIndentation(widget)})`
     },
     {
         id: 'wrapping.wrapWithContainer',
         title: 'Container',
-        fullTitle: 'Wrapped with Container',
+        fullTitle: 'Wrap with Container',
         snippet: (widget) => `Container(\n${getIndentation(widget)}  child: ${widget},\n${getIndentation(widget)})`
     },
     {
         id: 'wrapping.wrapWithCenter',
         title: 'Center',
-        fullTitle: 'Wrapped with Center',
+        fullTitle: 'Wrap with Center',
         snippet: (widget) => `Center(\n${getIndentation(widget)}  child: ${widget},\n${getIndentation(widget)})`
     },
     {
         id: 'wrapping.wrapWithPadding',
         title: 'Padding',
-        fullTitle: 'Wrapped with Padding',
+        fullTitle: 'Wrap with Padding',
         snippet: (widget) => `Padding(\n${getIndentation(widget)}  padding: const EdgeInsets.all(8.0),\n${getIndentation(widget)}  child: ${widget},\n${getIndentation(widget)})`
     },
     {
         id: 'wrapping.wrapWithStack',
         title: 'Stack',
-        fullTitle: 'Wrapped with Stack',
+        fullTitle: 'Wrap with Stack',
         snippet: (widget) => `Stack(\n${getIndentation(widget)}  children: [\n${getIndentation(widget)}    ${widget},\n${getIndentation(widget)}  ],\n${getIndentation(widget)})`
     },
     {
         id: 'wrapping.wrapWithFlexible',
         title: 'Flexible',
-        fullTitle: 'Wrapped with Flexible',
+        fullTitle: 'Wrap with Flexible',
         snippet: (widget) => `Flexible(\n${getIndentation(widget)}  child: ${widget},\n${getIndentation(widget)})`
     }
 ];

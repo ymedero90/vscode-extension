@@ -1,9 +1,12 @@
 const vscode = require('vscode');
+const path = require('path');
 
 // Import modules from our organized structure
 const { DART_MODE, DART_CODE_EXTENSION, FLUTTER_EXTENSION } = require('./src/constants');
 const { registerCommands } = require('./src/commands');
 const { CodeActionWrapProvider } = require('./src/code-actions');
+const { getAllWidgets } = require('./src/wrappers');
+const { WrappersViewProvider } = require('./src/views');
 
 /**
  * @param {vscode.ExtensionContext} context
@@ -14,6 +17,9 @@ function activate(context) {
     // Check if required extensions are installed
     checkDependencies();
 
+    // Get all available widgets
+    const widgetWrappers = getAllWidgets();
+
     // Register commands and providers
     registerCommands(context);
 
@@ -21,6 +27,24 @@ function activate(context) {
     context.subscriptions.push(
         vscode.languages.registerCodeActionsProvider(DART_MODE, new CodeActionWrapProvider())
     );
+
+    // Register view for the activity bar
+    const wrappersViewProvider = new WrappersViewProvider(widgetWrappers);
+
+    // Reset the provider to ensure clean initialization
+    context.subscriptions.push(
+        vscode.window.registerTreeDataProvider('flutterWrappers', wrappersViewProvider)
+    );
+
+    // Register refresh command for the view
+    context.subscriptions.push(
+        vscode.commands.registerCommand('flutterWrappers.refresh', () => {
+            wrappersViewProvider.refresh();
+        })
+    );
+
+    // Show the view
+    vscode.commands.executeCommand('flutterWrappers.focus');
 }
 
 /**

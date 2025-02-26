@@ -38,27 +38,28 @@ function wrapWidget(snippetGenerator, widgetName) {
     let widgetText;
     let widgetRange;
 
-    // If there's text selected, use that selection
+    // If there's text selected, use that selection with validation
     if (!selection.isEmpty) {
         widgetRange = selection;
         widgetText = editor.document.getText(widgetRange);
+
+        // Validate the selected text looks like a widget
+        if (!widgetText.trim().startsWith(RegExp(/[A-Z]/))) {
+            vscode.window.showErrorMessage('The selected text does not appear to be a Flutter widget. Widgets typically start with an uppercase letter.');
+            return;
+        }
     } else {
         // If there's only a cursor, try to detect the complete widget
         const position = selection.active;
         const result = detectCompleteWidget(editor.document, position);
 
         if (!result) {
-            vscode.window.showErrorMessage('Could not detect a widget at cursor position');
+            vscode.window.showErrorMessage('Could not detect a valid Flutter widget at cursor position. Please position your cursor on a widget like Container, Text, etc.');
             return;
         }
 
         widgetRange = result.range;
         widgetText = result.text;
-    }
-
-    if (!widgetText || widgetText.trim().length === 0) {
-        vscode.window.showErrorMessage('No widget found to wrap');
-        return;
     }
 
     // Insert the wrapped widget
