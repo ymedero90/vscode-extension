@@ -1,0 +1,104 @@
+{
+  "name": "flutter-widget-wrapper",
+  "publisher": "ymedero90",
+  "displayName": "Flutter Widget Wrapper",
+  "description": "Wraps Flutter code with common widgets",
+  "version": "0.1.0",
+  "engines": {
+    "vscode": "^1.60.0"
+  },
+  "categories": [
+    "Programming Languages",
+    "Snippets"
+  ],
+  "activationEvents": [
+    "onLanguage:dart"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "wrapping.wrapWithExpanded",
+        "title": "Wrap with Expanded"
+      },
+      {
+        "command": "wrapping.wrapWithContainer",
+        "title": "Wrap with Container"
+      },
+      {
+        "command": "wrapping.wrapWithCenter",
+        "title": "Wrap with Center"
+      },
+      {
+        "command": "wrapping.wrapWithPadding",
+        "title": "Wrap with Padding"
+      },
+      {
+        "command": "wrapping.wrapWithStack",
+        "title": "Wrap with Stack"
+      },
+      {
+        "command": "wrapping.wrapWithFlexible",
+        "title": "Wrap with Flexible"
+      },
+      {
+        "command": "wrapping.showWidgetsMenu",
+        "title": "Wrap with Widget..."
+      }
+    ],
+    "menus": {
+      "editor/context": [
+        {
+          "submenu": "flutter.wrappers",
+          "when": "editorLangId == dart",
+          "group": "1_modification"
+        }
+      ],
+      "flutter.wrappers": [
+        {
+          "command": "wrapping.wrapWithExpanded",
+          "group": "widgets@1"
+        },
+        {
+          "command": "wrapping.wrapWithContainer",
+          "group": "widgets@2"
+        },
+        {
+          "command": "wrapping.wrapWithCenter",
+          "group": "widgets@3"
+        },
+        {
+          "command": "wrapping.wrapWithPadding",
+          "group": "widgets@4"
+        },
+        {
+          "command": "wrapping.wrapWithStack",
+          "group": "widgets@5"
+        },
+        {
+          "command": "wrapping.wrapWithFlexible",
+          "group": "widgets@6"
+        }
+      ]
+    },
+    "submenus": [
+      {
+        "id": "flutter.wrappers",
+        "label": "Flutter Wrappers"
+      }
+    ]
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "pretest": "npm run lint",
+    "test": "node ./test/runTest.js",
+    "vscode:prepublish": "npm run lint"
+  },
+  "devDependencies": {
+    "@types/vscode": "^1.60.0",
+    "@types/node": "^14.0.0",
+    "generator-code": "^1.11.6",
+    "yo": "^5.1.0",
+    "eslint": "^8.36.0"
+  }
+}
