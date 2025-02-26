@@ -4,6 +4,10 @@
   "displayName": "Flutter Widget Wrapper",
   "description": "Wraps Flutter code with common widgets",
   "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ymedero90/flutter-widget-wrapper.git"
+  },
   "engines": {
     "vscode": "^1.60.0"
   },
@@ -44,6 +48,90 @@
         "title": "Wrap with Flexible"
       },
       {
+        "command": "wrapping.wrapWithAlign",
+        "title": "Wrap with Align"
+      },
+      {
+        "command": "wrapping.wrapWithSizedBox",
+        "title": "Wrap with SizedBox"
+      },
+      {
+        "command": "wrapping.wrapWithAspectRatio",
+        "title": "Wrap with AspectRatio"
+      },
+      {
+        "command": "wrapping.wrapWithFittedBox",
+        "title": "Wrap with FittedBox"
+      },
+      {
+        "command": "wrapping.wrapWithRow",
+        "title": "Wrap with Row"
+      },
+      {
+        "command": "wrapping.wrapWithColumn",
+        "title": "Wrap with Column"
+      },
+      {
+        "command": "wrapping.wrapWithWrap",
+        "title": "Wrap with Wrap"
+      },
+      {
+        "command": "wrapping.wrapWithListView",
+        "title": "Wrap with ListView"
+      },
+      {
+        "command": "wrapping.wrapWithGridView",
+        "title": "Wrap with GridView"
+      },
+      {
+        "command": "wrapping.wrapWithCard",
+        "title": "Wrap with Card"
+      },
+      {
+        "command": "wrapping.wrapWithInkWell",
+        "title": "Wrap with InkWell"
+      },
+      {
+        "command": "wrapping.wrapWithMaterial",
+        "title": "Wrap with Material"
+      },
+      {
+        "command": "wrapping.wrapWithGestureDetector",
+        "title": "Wrap with GestureDetector"
+      },
+      {
+        "command": "wrapping.wrapWithMouseRegion",
+        "title": "Wrap with MouseRegion"
+      },
+      {
+        "command": "wrapping.wrapWithDismissible",
+        "title": "Wrap with Dismissible"
+      },
+      {
+        "command": "wrapping.wrapWithSingleChildScrollView",
+        "title": "Wrap with SingleChildScrollView"
+      },
+      {
+        "command": "wrapping.wrapWithScrollbar",
+        "title": "Wrap with Scrollbar"
+      },
+      {
+        "command": "wrapping.wrapWithOpacity",
+        "title": "Wrap with Opacity"
+      },
+      {
+        "command": "wrapping.wrapWithClipRRect",
+        "title": "Wrap with ClipRRect"
+      },
+      {
+        "command": "wrapping.wrapWithClipOval",
+        "title": "Wrap with ClipOval"
+      },
+      {
+        "command": "wrapping.wrapWithAnimatedContainer",
+        "title": "Wrap with AnimatedContainer"
+      },
+      {
         "command": "wrapping.showWidgetsMenu",
         "title": "Wrap with Widget..."
       },
@@ -51,6 +139,16 @@
         "command": "flutterWrappers.refresh",
         "title": "Refresh",
         "icon": "$(refresh)"
+      },
+      {
+        "command": "flutterWrappers.toggleWrapper",
+        "title": "Toggle Wrapper",
+        "icon": "$(check)"
+      },
+      {
+        "command": "flutterWrappers.toggleWrapperState",
+        "title": "Enable/Disable Wrapper",
+        "icon": "$(check)"
       }
     ],
     "viewsContainers": {
@@ -80,28 +178,158 @@
       ],
       "flutter.wrappers": [
         {
-          "command": "wrapping.wrapWithExpanded",
-          "group": "widgets@1"
+          "submenu": "flutter.wrappers.layout",
+          "group": "1_categories"
         },
         {
+          "submenu": "flutter.wrappers.flex",
+          "group": "1_categories"
+        },
+        {
+          "submenu": "flutter.wrappers.multi-child",
+          "group": "1_categories"
+        },
+        {
+          "submenu": "flutter.wrappers.material",
+          "group": "1_categories"
+        },
+        {
+          "submenu": "flutter.wrappers.interaction",
+          "group": "1_categories"
+        },
+        {
+          "submenu": "flutter.wrappers.scrolling",
+          "group": "1_categories"
+        },
+        {
+          "submenu": "flutter.wrappers.styling",
+          "group": "1_categories"
+        },
+        {
+          "command": "wrapping.showWidgetsMenu",
+          "group": "2_menu@1"
+        }
+      ],
+      "flutter.wrappers.layout": [
+        {
           "command": "wrapping.wrapWithContainer",
-          "group": "widgets@2"
+          "when": "flutterWrapper.wrapping.wrapWithContainer.enabled"
         },
         {
           "command": "wrapping.wrapWithCenter",
-          "group": "widgets@3"
+          "when": "flutterWrapper.wrapping.wrapWithCenter.enabled"
         },
         {
           "command": "wrapping.wrapWithPadding",
-          "group": "widgets@4"
+          "when": "flutterWrapper.wrapping.wrapWithPadding.enabled"
         },
         {
-          "command": "wrapping.wrapWithStack",
-          "group": "widgets@5"
+          "command": "wrapping.wrapWithAlign",
+          "when": "flutterWrapper.wrapping.wrapWithAlign.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithSizedBox",
+          "when": "flutterWrapper.wrapping.wrapWithSizedBox.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithAspectRatio",
+          "when": "flutterWrapper.wrapping.wrapWithAspectRatio.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithFittedBox",
+          "when": "flutterWrapper.wrapping.wrapWithFittedBox.enabled"
+        }
+      ],
+      "flutter.wrappers.flex": [
+        {
+          "command": "wrapping.wrapWithExpanded",
+          "when": "flutterWrapper.wrapping.wrapWithExpanded.enabled"
         },
         {
           "command": "wrapping.wrapWithFlexible",
-          "group": "widgets@6"
+          "when": "flutterWrapper.wrapping.wrapWithFlexible.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithRow",
+          "when": "flutterWrapper.wrapping.wrapWithRow.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithColumn",
+          "when": "flutterWrapper.wrapping.wrapWithColumn.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithWrap",
+          "when": "flutterWrapper.wrapping.wrapWithWrap.enabled"
+        }
+      ],
+      "flutter.wrappers.multi-child": [
+        {
+          "command": "wrapping.wrapWithStack",
+          "when": "flutterWrapper.wrapping.wrapWithStack.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithListView",
+          "when": "flutterWrapper.wrapping.wrapWithListView.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithGridView",
+          "when": "flutterWrapper.wrapping.wrapWithGridView.enabled"
+        }
+      ],
+      "flutter.wrappers.material": [
+        {
+          "command": "wrapping.wrapWithCard",
+          "when": "flutterWrapper.wrapping.wrapWithCard.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithInkWell",
+          "when": "flutterWrapper.wrapping.wrapWithInkWell.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithMaterial",
+          "when": "flutterWrapper.wrapping.wrapWithMaterial.enabled"
+        }
+      ],
+      "flutter.wrappers.interaction": [
+        {
+          "command": "wrapping.wrapWithGestureDetector",
+          "when": "flutterWrapper.wrapping.wrapWithGestureDetector.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithMouseRegion",
+          "when": "flutterWrapper.wrapping.wrapWithMouseRegion.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithDismissible",
+          "when": "flutterWrapper.wrapping.wrapWithDismissible.enabled"
+        }
+      ],
+      "flutter.wrappers.scrolling": [
+        {
+          "command": "wrapping.wrapWithSingleChildScrollView",
+          "when": "flutterWrapper.wrapping.wrapWithSingleChildScrollView.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithScrollbar",
+          "when": "flutterWrapper.wrapping.wrapWithScrollbar.enabled"
+        }
+      ],
+      "flutter.wrappers.styling": [
+        {
+          "command": "wrapping.wrapWithOpacity",
+          "when": "flutterWrapper.wrapping.wrapWithOpacity.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithClipRRect",
+          "when": "flutterWrapper.wrapping.wrapWithClipRRect.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithClipOval",
+          "when": "flutterWrapper.wrapping.wrapWithClipOval.enabled"
+        },
+        {
+          "command": "wrapping.wrapWithAnimatedContainer",
+          "when": "flutterWrapper.wrapping.wrapWithAnimatedContainer.enabled"
         }
       ],
       "view/title": [
@@ -110,12 +338,47 @@
           "when": "view == flutterWrappers",
           "group": "navigation"
         }
+      ],
+      "view/item/context": [
+        {
+          "command": "flutterWrappers.toggleWrapperState",
+          "when": "view == flutterWrappers && viewItem == 'wrapper'",
+          "group": "inline"
+        }
       ]
     },
     "submenus": [
       {
         "id": "flutter.wrappers",
         "label": "Flutter Wrappers"
+      },
+      {
+        "id": "flutter.wrappers.layout",
+        "label": "Layout Widgets"
+      },
+      {
+        "id": "flutter.wrappers.flex",
+        "label": "Flex Widgets"
+      },
+      {
+        "id": "flutter.wrappers.multi-child",
+        "label": "Multi-Child Layouts"
+      },
+      {
+        "id": "flutter.wrappers.material",
+        "label": "Material Widgets"
+      },
+      {
+        "id": "flutter.wrappers.interaction",
+        "label": "Interaction Widgets"
+      },
+      {
+        "id": "flutter.wrappers.scrolling",
+        "label": "Scrolling Widgets"
+      },
+      {
+        "id": "flutter.wrappers.styling",
+        "label": "Styling & Effects"
       }
     ]
   },
@@ -123,7 +386,12 @@
     "lint": "eslint .",
     "pretest": "npm run lint",
     "test": "node ./test/runTest.js",
-    "vscode:prepublish": "npm run lint"
+    "vscode:prepublish": "npm run lint",
+    "build-vsix": "node ./scripts/build-vsix.js",
+    "vsce-package": "vsce package --allow-missing-repository -o dist/flutter-widget-wrapper.vsix",
+    "postinstall": "chmod +x ./scripts/build-vsix.js",
+    "build": "npm run build-vsix",
+    "package": "npm run vsce-package"
   },
   "devDependencies": {
     "@types/vscode": "^1.60.0",

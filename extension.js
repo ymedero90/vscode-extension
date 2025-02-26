@@ -5,7 +5,7 @@ const path = require('path');
 const { DART_MODE, DART_CODE_EXTENSION, FLUTTER_EXTENSION } = require('./src/constants');
 const { registerCommands } = require('./src/commands');
 const { CodeActionWrapProvider } = require('./src/code-actions');
-const { getAllWidgets } = require('./src/wrappers');
+const { getAllWidgets, initializeWrapperStates, getEnabledWidgets } = require('./src/wrappers');
 const { WrappersViewProvider } = require('./src/views');
 
 /**
@@ -17,34 +17,89 @@ function activate(context) {
     // Check if required extensions are installed
     checkDependencies();
 
-    // Get all available widgets
-    const widgetWrappers = getAllWidgets();
+    try {
+        // Initialize wrapper states
+        initializeWrapperStates(context);
 
-    // Register commands and providers
-    registerCommands(context);
+        // Get all available widgets
+        const widgetWrappers = getAllWidgets();
 
-    // Register code action provider
-    context.subscriptions.push(
-        vscode.languages.registerCodeActionsProvider(DART_MODE, new CodeActionWrapProvider())
-    );
+        // Register commands first so they're available
+        registerCommands(context);
 
-    // Register view for the activity bar
-    const wrappersViewProvider = new WrappersViewProvider(widgetWrappers);
+        // Register view for the activity bar
+        const wrappersViewProvider = new WrappersViewProvider(widgetWrappers, context);
 
-    // Reset the provider to ensure clean initialization
-    context.subscriptions.push(
-        vscode.window.registerTreeDataProvider('flutterWrappers', wrappersViewProvider)
-    );
+        // Create tree view WITHOUT checkboxes - use simple clickable items instead
+        const treeView = vscode.window.createTreeView('flutterWrappers', {
+            treeDataProvider: wrappersViewProvider
+        });
 
-    // Register refresh command for the view
-    context.subscriptions.push(
-        vscode.commands.registerCommand('flutterWrappers.refresh', () => {
-            wrappersViewProvider.refresh();
-        })
-    );
+        context.subscriptions.push(treeView);
 
-    // Show the view
-    vscode.commands.executeCommand('flutterWrappers.focus');
+        // Register code action provider
+        context.subscriptions.push(
+            vscode.languages.registerCodeActionsProvider(DART_MODE, new CodeActionWrapProvider())
+        );
+
+        // Register refresh command
+        context.subscriptions.push(
+            vscode.commands.registerCommand('flutterWrappers.refresh', () => {
+                wrappersViewProvider.refresh();
+            })
+        );
+
+        // Register a direct toggle command
+        context.subscriptions.push(
+            vscode.commands.registerCommand('flutterWrappers.toggleWrapperState', (item) => {
+                console.log('Toggle for item:', item);
+
+                // Direct call to toggleWrapperState
+                const { toggleWrapperState } = require('./src/wrappers');
+                const newState = toggleWrapperState(item.id, context);
+
+                // Refresh
+                wrappersViewProvider.refresh();
+
+                // Update context menus
+                updateMenuVisibility();
+
+                vscode.window.showInformationMessage(
+                    `${item.title} is now ${newState ? 'enabled' : 'disabled'}`
+                );
+            })
+        );
+
+        // Initialize all context values
+        for (const wrapper of widgetWrappers) {
+            vscode.commands.executeCommand(
+                'setContext',
+                `flutterWrapper.${wrapper.id}.enabled`,
+                wrapper.enabled !== false
+            );
+        }
+
+        // Show the view
+        vscode.commands.executeCommand('flutterWrappers.focus');
+
+    } catch (error) {
+        console.error('Error during activation:', error);
+        vscode.window.showErrorMessage(`Flutter Widget Wrapper activation failed: ${error.message}`);
+    }
+}
+
+/**
+ * Updates the context menu visibility based on enabled wrappers
+ */
+function updateMenuVisibility() {
+    const allWrappers = getAllWidgets();
+
+    // For each wrapper, set a context value to control visibility
+    for (const wrapper of allWrappers) {
+        const contextKey = `flutterWrapper.${wrapper.id}.enabled`;
+        const isEnabled = wrapper.enabled !== false;
+        vscode.commands.executeCommand('setContext', contextKey, isEnabled);
+    }
 }
 
 /**

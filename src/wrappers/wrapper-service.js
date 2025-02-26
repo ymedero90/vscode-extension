@@ -1,12 +1,22 @@
 const vscode = require('vscode');
 const { detectCompleteWidget } = require('../utils');
+const { getEnabledWidgets } = require('./widget-registry');
 
 /**
  * Shows a menu with all available wrapping options
- * @param {Array} widgetWrappers List of available widgets
  */
-async function showWidgetsMenu(widgetWrappers) {
-    const items = widgetWrappers.map(wrapper => ({
+async function showWidgetsMenu() {
+    // Get only enabled wrappers - important to call this fresh each time
+    const enabledWrappers = getEnabledWidgets();
+
+    if (enabledWrappers.length === 0) {
+        vscode.window.showWarningMessage(
+            'No wrappers are currently enabled. Please enable wrappers in the Flutter Wrappers panel.'
+        );
+        return;
+    }
+
+    const items = enabledWrappers.map(wrapper => ({
         label: wrapper.title,
         description: `Wrap with ${wrapper.title}`,
         wrapper: wrapper
