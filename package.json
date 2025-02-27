@@ -170,6 +170,11 @@
         "command": "flutterWrappers.toggleWrapperState",
         "title": "Enable/Disable Wrapper",
         "icon": "$(check)"
+      },
+      {
+        "command": "flutterWrappers.openSettings",
+        "title": "Open Wrapper Settings",
+        "icon": "$(gear)"
       }
     ],
     "viewsContainers": {
@@ -358,6 +363,11 @@
           "command": "flutterWrappers.refresh",
           "when": "view == flutterWrappers",
           "group": "navigation"
+        },
+        {
+          "command": "flutterWrappers.openSettings",
+          "when": "view == flutterWrappers",
+          "group": "navigation"
         }
       ],
       "view/item/context": [
@@ -400,6 +410,190 @@
       {
         "id": "flutter.wrappers.styling",
         "label": "Styling & Effects"
+      }
+    ],
+    "configuration": [
+      {
+        "title": "Flutter Widget Wrapper",
+        "order": 1,
+        "properties": {}
+      },
+      {
+        "title": "Layout Widgets",
+        "order": 2,
+        "properties": {
+          "flutterWidgetWrapper.layout.Container": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Container' widget wrapper"
+          },
+          "flutterWidgetWrapper.layout.Center": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Center' widget wrapper"
+          },
+          "flutterWidgetWrapper.layout.Padding": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Padding' widget wrapper"
+          },
+          "flutterWidgetWrapper.layout.Align": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Align' widget wrapper"
+          },
+          "flutterWidgetWrapper.layout.SizedBox": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'SizedBox' widget wrapper"
+          },
+          "flutterWidgetWrapper.layout.AspectRatio": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'AspectRatio' widget wrapper"
+          },
+          "flutterWidgetWrapper.layout.FittedBox": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'FittedBox' widget wrapper"
+          }
+        }
+      },
+      {
+        "title": "Flex Widgets",
+        "order": 3,
+        "properties": {
+          "flutterWidgetWrapper.flex.Expanded": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Expanded' widget wrapper"
+          },
+          "flutterWidgetWrapper.flex.Flexible": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Flexible' widget wrapper"
+          },
+          "flutterWidgetWrapper.flex.Row": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Row' widget wrapper"
+          },
+          "flutterWidgetWrapper.flex.Column": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Column' widget wrapper"
+          },
+          "flutterWidgetWrapper.flex.Wrap": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Wrap' widget wrapper"
+          }
+        }
+      },
+      {
+        "title": "Multi-Child Layouts",
+        "order": 4,
+        "properties": {
+          "flutterWidgetWrapper.multiChild.Stack": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Stack' widget wrapper"
+          },
+          "flutterWidgetWrapper.multiChild.ListView": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'ListView' widget wrapper"
+          },
+          "flutterWidgetWrapper.multiChild.GridView": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'GridView' widget wrapper"
+          }
+        }
+      },
+      {
+        "title": "Material Widgets",
+        "order": 5,
+        "properties": {
+          "flutterWidgetWrapper.material.Card": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Card' widget wrapper"
+          },
+          "flutterWidgetWrapper.material.InkWell": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'InkWell' widget wrapper"
+          },
+          "flutterWidgetWrapper.material.Material": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Material' widget wrapper"
+          }
+        }
+      },
+      {
+        "title": "Interaction Widgets",
+        "order": 6,
+        "properties": {
+          "flutterWidgetWrapper.interaction.GestureDetector": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'GestureDetector' widget wrapper"
+          },
+          "flutterWidgetWrapper.interaction.MouseRegion": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'MouseRegion' widget wrapper"
+          },
+          "flutterWidgetWrapper.interaction.Dismissible": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Dismissible' widget wrapper"
+          }
+        }
+      },
+      {
+        "title": "Scrolling Widgets",
+        "order": 7,
+        "properties": {
+          "flutterWidgetWrapper.scrolling.SingleChildScrollView": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'SingleChildScrollView' widget wrapper"
+          },
+          "flutterWidgetWrapper.scrolling.Scrollbar": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Scrollbar' widget wrapper"
+          }
+        }
+      },
+      {
+        "title": "Styling & Effects",
+        "order": 8,
+        "properties": {
+          "flutterWidgetWrapper.styling.Opacity": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'Opacity' widget wrapper"
+          },
+          "flutterWidgetWrapper.styling.ClipRRect": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'ClipRRect' widget wrapper"
+          },
+          "flutterWidgetWrapper.styling.ClipOval": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'ClipOval' widget wrapper"
+          },
+          "flutterWidgetWrapper.styling.AnimatedContainer": {
+            "type": "boolean",
+            "default": true,
+            "description": "Enable 'AnimatedContainer' widget wrapper"
+          }
+        }
       }
     ]
   },

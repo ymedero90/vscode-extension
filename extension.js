@@ -1,121 +1,97 @@
 const vscode = require('vscode');
-const path = require('path');
-
-// Import modules from our organized structure
-const { DART_MODE, DART_CODE_EXTENSION, FLUTTER_EXTENSION } = require('./src/constants');
-const { registerCommands } = require('./src/commands');
-const { CodeActionWrapProvider } = require('./src/code-actions');
-const { getAllWidgets, initializeWrapperStates, getEnabledWidgets } = require('./src/wrappers');
-const { WrappersViewProvider } = require('./src/views');
+const { registerCommands } = require('./src/commands/register-commands');
+const { CodeActionWrapProvider } = require('./src/code-actions/wrapper-provider');
+const { WrappersViewProvider } = require('./src/views/wrappers-view-provider');
+const {
+    initializeWrapperStates,
+    toggleWrapperState,
+    syncWrappersWithConfig
+} = require('./src/wrappers/widget-registry');
 
 /**
+ * Extension activation point
  * @param {vscode.ExtensionContext} context
  */
 function activate(context) {
-    console.log('Flutter Widget Wrapper extension is now active!');
+    console.log('Flutter Widget Wrapper extension is now active.');
 
-    // Check if required extensions are installed
-    checkDependencies();
+    // Initialize widget states
+    initializeWrapperStates(context);
 
-    try {
-        // Initialize wrapper states
-        initializeWrapperStates(context);
+    // Register code action provider
+    context.subscriptions.push(
+        vscode.languages.registerCodeActionsProvider(
+            { language: 'dart', scheme: 'file' },
+            new CodeActionWrapProvider()
+        )
+    );
 
-        // Get all available widgets
-        const widgetWrappers = getAllWidgets();
+    // Register commands
+    registerCommands(context);
 
-        // Register commands first so they're available
-        registerCommands(context);
+    // Create and register view provider for the main wrappers list
+    const wrappersViewProvider = new WrappersViewProvider([], context);
+    vscode.window.registerTreeDataProvider('flutterWrappers', wrappersViewProvider);
 
-        // Register view for the activity bar
-        const wrappersViewProvider = new WrappersViewProvider(widgetWrappers, context);
+    // Register configuration change listener
+    context.subscriptions.push(
+        vscode.workspace.onDidChangeConfiguration(event => {
+            // Check if our configuration section was affected
+            if (isFlutterWrapperSettingChanged(event)) {
+                console.log('Flutter Wrapper configuration changed');
 
-        // Create tree view WITHOUT checkboxes - use simple clickable items instead
-        const treeView = vscode.window.createTreeView('flutterWrappers', {
-            treeDataProvider: wrappersViewProvider
-        });
+                // Sync wrapper states with configuration
+                syncWrappersWithConfig();
 
-        context.subscriptions.push(treeView);
-
-        // Register code action provider
-        context.subscriptions.push(
-            vscode.languages.registerCodeActionsProvider(DART_MODE, new CodeActionWrapProvider())
-        );
-
-        // Register refresh command
-        context.subscriptions.push(
-            vscode.commands.registerCommand('flutterWrappers.refresh', () => {
+                // Refresh the view
                 wrappersViewProvider.refresh();
-            })
-        );
+            }
+        })
+    );
 
-        // Register a direct toggle command
-        context.subscriptions.push(
-            vscode.commands.registerCommand('flutterWrappers.toggleWrapperState', (item) => {
-                console.log('Toggle for item:', item);
+    // Register refresh command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('flutterWrappers.refresh', () => {
+            wrappersViewProvider.refresh();
+        })
+    );
 
-                // Direct call to toggleWrapperState
-                const { toggleWrapperState } = require('./src/wrappers');
-                const newState = toggleWrapperState(item.id, context);
+    // Register open settings command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('flutterWrappers.openSettings', () => {
+            vscode.commands.executeCommand('workbench.action.openSettings', 'flutterWidgetWrapper');
+        })
+    );
 
-                // Refresh
-                wrappersViewProvider.refresh();
+    // Register toggle wrapper state command
+    context.subscriptions.push(
+        vscode.commands.registerCommand('flutterWrappers.toggleWrapperState', (wrapper) => {
+            if (!wrapper || !wrapper.id) {
+                vscode.window.showErrorMessage('Invalid wrapper selected');
+                return;
+            }
 
-                // Update context menus
-                updateMenuVisibility();
+            console.log(`Toggling wrapper: ${wrapper.id}`);
 
-                vscode.window.showInformationMessage(
-                    `${item.title} is now ${newState ? 'enabled' : 'disabled'}`
-                );
-            })
-        );
-
-        // Initialize all context values
-        for (const wrapper of widgetWrappers) {
-            vscode.commands.executeCommand(
-                'setContext',
-                `flutterWrapper.${wrapper.id}.enabled`,
-                wrapper.enabled !== false
+            const newState = toggleWrapperState(wrapper.id, context);
+            vscode.window.showInformationMessage(
+                `${wrapper.title} wrapper is now ${newState ? 'enabled' : 'disabled'}`
             );
-        }
 
-        // Show the view
-        vscode.commands.executeCommand('flutterWrappers.focus');
-
-    } catch (error) {
-        console.error('Error during activation:', error);
-        vscode.window.showErrorMessage(`Flutter Widget Wrapper activation failed: ${error.message}`);
-    }
+            // Refresh the view to show the updated state
+            wrappersViewProvider.refresh();
+        })
+    );
 }
 
 /**
- * Updates the context menu visibility based on enabled wrappers
+ * Checks if the configuration change event affects our extension's settings
+ * @param {vscode.ConfigurationChangeEvent} event The configuration change event
+ * @returns {boolean} True if our settings were affected
  */
-function updateMenuVisibility() {
-    const allWrappers = getAllWidgets();
-
-    // For each wrapper, set a context value to control visibility
-    for (const wrapper of allWrappers) {
-        const contextKey = `flutterWrapper.${wrapper.id}.enabled`;
-        const isEnabled = wrapper.enabled !== false;
-        vscode.commands.executeCommand('setContext', contextKey, isEnabled);
-    }
-}
-
-/**
- * Verify that Dart and Flutter extensions are installed
- */
-function checkDependencies() {
-    const dartExt = vscode.extensions.getExtension(DART_CODE_EXTENSION);
-    const flutterExt = vscode.extensions.getExtension(FLUTTER_EXTENSION);
-
-    if (!dartExt) {
-        vscode.window.showWarningMessage("The Dart extension is not installed. Some features might not work correctly.");
-    }
-
-    if (!flutterExt) {
-        vscode.window.showWarningMessage("The Flutter extension is not installed. Some features might not work correctly.");
-    }
+function isFlutterWrapperSettingChanged(event) {
+    // Check for any section that starts with flutterWidgetWrapper
+    return event.affectsConfiguration('flutterWidgetWrapper');
 }
 
 function deactivate() { }
@@ -123,4 +99,4 @@ function deactivate() { }
 module.exports = {
     activate,
     deactivate
-}
+};

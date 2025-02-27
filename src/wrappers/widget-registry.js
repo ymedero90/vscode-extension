@@ -1,7 +1,7 @@
 const vscode = require('vscode');
 const { getIndentation } = require('../utils');
 
-// Store enabled state in workspace state
+// Store enabled state in configuration
 let enabledWrappers = {};
 
 /**
@@ -223,33 +223,133 @@ const widgetWrappers = widgetCategories.flatMap(category =>
 );
 
 /**
- * Initializes wrapper states from the workspace state
+ * Maps widget IDs to their configuration paths
+ */
+const widgetConfigMap = {
+    // Layout widgets
+    'wrapping.wrapWithContainer': 'flutterWidgetWrapper.layout.Container',
+    'wrapping.wrapWithCenter': 'flutterWidgetWrapper.layout.Center',
+    'wrapping.wrapWithPadding': 'flutterWidgetWrapper.layout.Padding',
+    'wrapping.wrapWithAlign': 'flutterWidgetWrapper.layout.Align',
+    'wrapping.wrapWithSizedBox': 'flutterWidgetWrapper.layout.SizedBox',
+    'wrapping.wrapWithAspectRatio': 'flutterWidgetWrapper.layout.AspectRatio',
+    'wrapping.wrapWithFittedBox': 'flutterWidgetWrapper.layout.FittedBox',
+
+    // Flex widgets
+    'wrapping.wrapWithExpanded': 'flutterWidgetWrapper.flex.Expanded',
+    'wrapping.wrapWithFlexible': 'flutterWidgetWrapper.flex.Flexible',
+    'wrapping.wrapWithRow': 'flutterWidgetWrapper.flex.Row',
+    'wrapping.wrapWithColumn': 'flutterWidgetWrapper.flex.Column',
+    'wrapping.wrapWithWrap': 'flutterWidgetWrapper.flex.Wrap',
+
+    // Multi-child widgets
+    'wrapping.wrapWithStack': 'flutterWidgetWrapper.multiChild.Stack',
+    'wrapping.wrapWithListView': 'flutterWidgetWrapper.multiChild.ListView',
+    'wrapping.wrapWithGridView': 'flutterWidgetWrapper.multiChild.GridView',
+
+    // Material widgets
+    'wrapping.wrapWithCard': 'flutterWidgetWrapper.material.Card',
+    'wrapping.wrapWithInkWell': 'flutterWidgetWrapper.material.InkWell',
+    'wrapping.wrapWithMaterial': 'flutterWidgetWrapper.material.Material',
+
+    // Interaction widgets
+    'wrapping.wrapWithGestureDetector': 'flutterWidgetWrapper.interaction.GestureDetector',
+    'wrapping.wrapWithMouseRegion': 'flutterWidgetWrapper.interaction.MouseRegion',
+    'wrapping.wrapWithDismissible': 'flutterWidgetWrapper.interaction.Dismissible',
+
+    // Scrolling widgets
+    'wrapping.wrapWithSingleChildScrollView': 'flutterWidgetWrapper.scrolling.SingleChildScrollView',
+    'wrapping.wrapWithScrollbar': 'flutterWidgetWrapper.scrolling.Scrollbar',
+
+    // Styling widgets
+    'wrapping.wrapWithOpacity': 'flutterWidgetWrapper.styling.Opacity',
+    'wrapping.wrapWithClipRRect': 'flutterWidgetWrapper.styling.ClipRRect',
+    'wrapping.wrapWithClipOval': 'flutterWidgetWrapper.styling.ClipOval',
+    'wrapping.wrapWithAnimatedContainer': 'flutterWidgetWrapper.styling.AnimatedContainer',
+};
+
+/**
+ * Gets the configuration path for a widget
+ * @param {string} widgetId The widget ID
+ * @returns {string} The configuration path
+ */
+function getConfigPath(widgetId) {
+    return widgetConfigMap[widgetId] || null;
+}
+
+/**
+ * Initializes wrapper states from VS Code configuration
  * @param {vscode.ExtensionContext} context The extension context
  */
 function initializeWrapperStates(context) {
     try {
-        // Load the state from workspaceState (persisted between sessions)
-        enabledWrappers = context.workspaceState.get('enabledWrappers', {});
-        console.log('Loaded wrapper states:', enabledWrappers);
-
-        // If no state saved yet, initialize all to enabled
-        if (Object.keys(enabledWrappers).length === 0) {
-            console.log('No saved states found. Initializing all wrappers as enabled.');
-            widgetWrappers.forEach(wrapper => {
-                enabledWrappers[wrapper.id] = true;
-            });
-            context.workspaceState.update('enabledWrappers', enabledWrappers);
-        }
-
-        // Apply saved states to widgets - use STRICT BOOLEAN values for better compatibility
+        // Load and apply settings for each wrapper
         widgetWrappers.forEach(wrapper => {
-            // Get the saved state or default to true
-            wrapper.enabled = enabledWrappers[wrapper.id] === false ? false : true;
+            const configPath = getConfigPath(wrapper.id);
+
+            if (configPath) {
+                // Get the value from configuration
+                const config = vscode.workspace.getConfiguration();
+                const enabled = config.get(configPath);
+
+                // Log the configuration lookup for debugging
+                console.log(`Looking up setting at path: ${configPath}, value: ${enabled}`);
+
+                // If setting exists, use it, otherwise default to true
+                wrapper.enabled = enabled === false ? false : true;
+            } else {
+                // Default to enabled if no specific config found
+                wrapper.enabled = true;
+            }
+
+            // Set context for when-clause in menus
+            vscode.commands.executeCommand('setContext', `flutterWrapper.${wrapper.id}.enabled`, wrapper.enabled);
+
             console.log(`Wrapper ${wrapper.id} initialized as ${wrapper.enabled ? 'enabled' : 'disabled'}`);
         });
     } catch (error) {
         console.error('Error initializing wrapper states:', error);
         widgetWrappers.forEach(wrapper => wrapper.enabled = true);
+    }
+}
+
+/**
+ * Synchronizes wrapper states with the current configuration
+ * This is called when configuration changes from the settings UI
+ */
+function syncWrappersWithConfig() {
+    try {
+        // Load current settings for each wrapper
+        widgetWrappers.forEach(wrapper => {
+            const configPath = getConfigPath(wrapper.id);
+
+            if (configPath) {
+                // Get the current value from configuration
+                const config = vscode.workspace.getConfiguration();
+                const enabled = config.get(configPath);
+
+                console.log(`[Sync] Reading ${configPath}: ${enabled}`);
+
+                // Update the wrapper's enabled state
+                if (enabled !== undefined) {
+                    const newState = enabled === true; // Convert to boolean
+
+                    // Only log if there was a change
+                    if (wrapper.enabled !== newState) {
+                        console.log(`[Sync] Updating ${wrapper.id} from ${wrapper.enabled} to ${newState}`);
+                    }
+
+                    wrapper.enabled = newState;
+
+                    // Also update the context for when-clauses in menus
+                    vscode.commands.executeCommand('setContext', `flutterWrapper.${wrapper.id}.enabled`, newState);
+                }
+            }
+        });
+
+        console.log('[Sync] Wrappers synchronized with configuration');
+    } catch (error) {
+        console.error('[Sync] Error synchronizing wrappers with config:', error);
     }
 }
 
@@ -296,7 +396,7 @@ function getWidgetById(id) {
 /**
  * Toggles a wrapper's enabled state
  * @param {string} id Wrapper ID to toggle
- * @param {vscode.ExtensionContext} context Extension context for saving state
+ * @param {vscode.ExtensionContext} context Extension context
  * @returns {boolean} New enabled state
  */
 function toggleWrapperState(id, context) {
@@ -309,14 +409,18 @@ function toggleWrapperState(id, context) {
     // Log the state change
     console.log(`[Registry] Toggled ${id} to ${wrapper.enabled}`);
 
-    // Update in-memory storage using the actual boolean value
-    enabledWrappers[id] = wrapper.enabled;
+    // Save the updated state to VS Code settings
+    const configPath = getConfigPath(id);
+    if (configPath) {
+        try {
+            console.log(`Updating setting at path: ${configPath}, new value: ${wrapper.enabled}`);
+            const config = vscode.workspace.getConfiguration();
 
-    // Save to workspace state - THIS IS WHAT PERSISTS THE STATES
-    try {
-        context.workspaceState.update('enabledWrappers', enabledWrappers);
-    } catch (error) {
-        console.error('Error saving wrapper state:', error);
+            // Update the configuration
+            config.update(configPath, wrapper.enabled, vscode.ConfigurationTarget.Workspace);
+        } catch (error) {
+            console.error('Error saving wrapper state:', error);
+        }
     }
 
     // Update VS Code context directly
@@ -335,5 +439,6 @@ module.exports = {
     getEnabledWidgets,
     getWidgetById,
     toggleWrapperState,
-    initializeWrapperStates
+    initializeWrapperStates,
+    syncWrappersWithConfig // Export the new function
 };

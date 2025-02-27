@@ -6,9 +6,11 @@ class WrappersViewProvider {
         this.context = context;
         this._onDidChangeTreeData = new vscode.EventEmitter();
         this.onDidChangeTreeData = this._onDidChangeTreeData.event;
-        
-        // Get categories from the wrapper registry
-        this.categories = require('../wrappers/widget-registry').getAllWidgetCategories();
+
+        // Get widget registry
+        const registry = require('../wrappers/widget-registry');
+        this.getEnabledWidgets = registry.getEnabledWidgets;
+        this.getAllWidgetCategories = registry.getAllWidgetCategories;
     }
 
     refresh() {
@@ -20,63 +22,66 @@ class WrappersViewProvider {
         if (element.isCategory) {
             const categoryItem = new vscode.TreeItem(
                 element.name,
-                element.wrappers && element.wrappers.length > 0
-                    ? vscode.TreeItemCollapsibleState.Expanded
-                    : vscode.TreeItemCollapsibleState.None
+                vscode.TreeItemCollapsibleState.Expanded
             );
-            
+
             categoryItem.contextValue = 'category';
-            categoryItem.iconPath = new vscode.ThemeIcon('package');
+            categoryItem.iconPath = new vscode.ThemeIcon('folder');
             categoryItem.id = `category_${element.id}`;
-            
+
             return categoryItem;
         }
-        
+
         // Handle wrapper items
         const treeItem = new vscode.TreeItem(
             element.title,
             vscode.TreeItemCollapsibleState.None
         );
 
-        // Set tooltip including status
-        treeItem.tooltip = `${element.fullTitle} (${element.enabled ? 'Enabled' : 'Disabled'})`;
-
-        // Keep the description
-        treeItem.description = element.enabled ? "Enabled" : "Disabled";
-
-        // Store properties needed for command access
+        treeItem.tooltip = element.fullTitle;
         treeItem.id = element.id;
-        treeItem.title = element.title;
-        treeItem.contextValue = 'wrapper';
+        treeItem.contextValue = 'wrapperItem';
 
-        // Use check for enabled and x-symbol for disabled
-        treeItem.iconPath = new vscode.ThemeIcon(element.enabled ? 'check' : 'x');
-
-        // Add command for toggling when clicked
+        // Command to execute when clicked
         treeItem.command = {
-            title: "Toggle wrapper state",
-            command: "flutterWrappers.toggleWrapperState",
-            arguments: [element]
+            title: "Execute wrapper",
+            command: element.id,
+            arguments: []
         };
 
         return treeItem;
     }
 
     getChildren(element) {
-        // Root level - return categories
         if (!element) {
-            return this.categories.map(category => ({
-                ...category,
-                isCategory: true
-            }));
+            // Root level - return categories that have enabled wrappers
+            const enabledWrappers = this.getEnabledWidgets();
+            const categories = this.getAllWidgetCategories();
+
+            return categories
+                .map(category => {
+                    // Check if category has any enabled wrappers
+                    const enabledCategoryWrappers = enabledWrappers.filter(
+                        w => w.category === category.id
+                    );
+
+                    if (enabledCategoryWrappers.length > 0) {
+                        return {
+                            ...category,
+                            isCategory: true,
+                            enabledWrappers: enabledCategoryWrappers
+                        };
+                    }
+                    return null;
+                })
+                .filter(Boolean); // Remove null entries
         }
-        
-        // If element is a category, return its wrappers
+
+        // If element is a category, return its enabled wrappers
         if (element.isCategory) {
-            return element.wrappers;
+            return element.enabledWrappers || [];
         }
-        
-        // No children for wrapper items
+
         return [];
     }
 
@@ -84,19 +89,20 @@ class WrappersViewProvider {
         if (!element || element.isCategory) {
             return null;
         }
-        
-        // Find parent category for this wrapper
-        const category = this.categories.find(cat => 
+
+        // Find parent category
+        const categories = this.getAllWidgetCategories();
+        const category = categories.find(cat =>
             cat.wrappers.some(wrapper => wrapper.id === element.id)
         );
-        
+
         if (category) {
             return {
                 ...category,
                 isCategory: true
             };
         }
-        
+
         return null;
     }
 }
