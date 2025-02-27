@@ -62,7 +62,7 @@ SOFTWARE.`;
 }
 
 // Create the Flutter logo SVG for the activity bar icon
-const flutterLogoPath = path.join(resourcesDir, 'flutter-logo.svg');
+const flutterLogoPath = path.join(resourcesDir, 'icon-extension.svg');
 if (!fs.existsSync(flutterLogoPath)) {
     console.log('🖼️ Creating Flutter logo for activity bar...');
     const flutterLogoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">

@@ -1,12 +1,12 @@
 {
-  "name": "flutter-widget-wrapper",
+  "name": "vscode-extension",
   "publisher": "ymedero90",
   "displayName": "Flutter Widget Wrapper",
-  "description": "Wraps Flutter code with common widgets",
-  "version": "0.1.0",
+  "description": "Wrap Flutter widgets with common layout and styling widgets quickly",
+  "version": "1.0.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/ymedero90/flutter-widget-wrapper.git"
+    "url": "https://github.com/yourusername/vscode-extension"
   },
   "engines": {
     "vscode": "^1.60.0"
@@ -15,12 +15,33 @@
     "Programming Languages",
     "Snippets"
   ],
+  "keywords": [
+    "flutter",
+    "widget",
+    "wrapper",
+    "wrap",
+    "dart",
+    "extension",
+    "vscode",
+    "code",
+    "action",
+    "quick",
+    "action",
+    "menu",
+    "stack",
+    "expanded",
+    "flexible",
+    "coloredbox",
+    "align",
+    "constrainedbox"
+  ],
   "activationEvents": [
     "onLanguage:dart",
     "onView:flutterWrappers"
   ],
   "main": "./extension.js",
-  "icon": "resources/icon.png",
+  "icon": "resources/icon-extension.png",
+  "readme": "README.md",
   "contributes": {
     "commands": [
       {
@@ -156,7 +177,7 @@
         {
           "id": "flutter-wrappers",
           "title": "Flutter Wrappers",
-          "icon": "resources/flutter-logo.svg"
+          "icon": "resources/icon-extension.svg"
         }
       ]
     },
