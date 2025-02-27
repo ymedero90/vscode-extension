@@ -175,6 +175,16 @@
         "command": "flutterWrappers.openSettings",
         "title": "Open Wrapper Settings",
         "icon": "$(gear)"
+      },
+      {
+        "command": "flutterWrappers.widgetTree.removeWidget",
+        "title": "Remove Widget",
+        "icon": "$(trash)"
+      },
+      {
+        "command": "flutterWrappers.widgetTree.wrapSelectedWidget",
+        "title": "Wrap with...",
+        "icon": "$(bracket)"
       }
     ],
     "viewsContainers": {
@@ -191,6 +201,10 @@
         {
           "id": "flutterWrappers",
           "name": "Available Wrappers"
+        },
+        {
+          "id": "flutterWidgetTree",
+          "name": "Widget Tree"
         }
       ]
     },
@@ -375,6 +389,16 @@
           "command": "flutterWrappers.toggleWrapperState",
           "when": "view == flutterWrappers && viewItem == 'wrapper'",
           "group": "inline"
+        },
+        {
+          "command": "flutterWrappers.widgetTree.removeWidget",
+          "when": "view == flutterWidgetTree && viewItem == 'widget'",
+          "group": "1_modification"
+        },
+        {
+          "command": "flutterWrappers.widgetTree.wrapSelectedWidget",
+          "when": "view == flutterWidgetTree && viewItem == 'widget'",
+          "group": "1_modification"
         }
       ]
     },
