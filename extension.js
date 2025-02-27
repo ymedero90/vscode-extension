@@ -36,7 +36,16 @@ function activate(context) {
 
     // Create and register view provider for the widget tree
     const widgetTreeProvider = new WidgetTreeProvider();
-    vscode.window.registerTreeDataProvider('flutterWidgetTree', widgetTreeProvider);
+
+    // Registrar el TreeView y guardar la referencia
+    const treeView = vscode.window.createTreeView('flutterWidgetTree', {
+        treeDataProvider: widgetTreeProvider,
+        showCollapseAll: true
+    });
+
+    // Establecer la referencia al TreeView en el provider
+    widgetTreeProvider.setTreeView(treeView);
+
     console.log('Widget tree view provider registered');
 
     // Add a command to focus the widget tree panel
@@ -55,17 +64,40 @@ function activate(context) {
         })
     );
 
+    // Reemplazar los comandos de expandAll y collapseAll
     context.subscriptions.push(
-        vscode.commands.registerCommand('flutterWrappers.widgetTree.expandAll', () => {
-            widgetTreeProvider.setMaxInitialDepth(100);
-            vscode.window.showInformationMessage('Expanding all widget tree nodes');
+        vscode.commands.registerCommand('flutterWrappers.widgetTree.expandAll', async () => {
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Expandiendo árbol...",
+                cancellable: false
+            }, async (progress) => {
+                try {
+                    await widgetTreeProvider.expandAll();
+                    vscode.window.showInformationMessage('Árbol expandido');
+                } catch (error) {
+                    console.error('Error expandiendo árbol:', error);
+                    vscode.window.showErrorMessage('Error al expandir el árbol');
+                }
+            });
         })
     );
 
     context.subscriptions.push(
-        vscode.commands.registerCommand('flutterWrappers.widgetTree.collapseAll', () => {
-            widgetTreeProvider.setMaxInitialDepth(0);
-            vscode.window.showInformationMessage('Collapsing all widget tree nodes');
+        vscode.commands.registerCommand('flutterWrappers.widgetTree.collapseAll', async () => {
+            vscode.window.withProgress({
+                location: vscode.ProgressLocation.Notification,
+                title: "Colapsando árbol...",
+                cancellable: false
+            }, async (progress) => {
+                try {
+                    await widgetTreeProvider.collapseAll();
+                    vscode.window.showInformationMessage('Árbol colapsado');
+                } catch (error) {
+                    console.error('Error colapsando árbol:', error);
+                    vscode.window.showErrorMessage('Error al colapsar el árbol');
+                }
+            });
         })
     );
 
@@ -84,7 +116,7 @@ function activate(context) {
 
                 // Try to locate the widget more precisely using the stored offset if available
                 let lineToUse = line;
-                
+
                 // If we have the exact character position, use it for better accuracy
                 // Highlight the widget first so user can see what's being unwrapped
                 if (widgetOffset) {
@@ -95,10 +127,10 @@ function activate(context) {
                         widgetStartPos.line,
                         widgetStartPos.character + widgetName.length
                     );
-                    
+
                     // Select the widget name to show what's being unwrapped
                     editor.selection = new vscode.Selection(widgetStartPos, nameEndPos);
-                    
+
                     // Use the more accurate line number
                     lineToUse = widgetStartPos.line;
                 }

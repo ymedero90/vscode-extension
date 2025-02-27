@@ -185,6 +185,21 @@
         "command": "flutterWrappers.widgetTree.wrapSelectedWidget",
         "title": "Wrap with...",
         "icon": "$(bracket)"
+      },
+      {
+        "command": "flutterWrappers.widgetTree.toggleViewMode",
+        "title": "Switch View Mode",
+        "icon": "$(list-tree)"
+      },
+      {
+        "command": "flutterWrappers.widgetTree.expandAll",
+        "title": "Expand All Nodes",
+        "icon": "$(expand-all)"
+      },
+      {
+        "command": "flutterWrappers.widgetTree.collapseAll",
+        "title": "Collapse All Nodes",
+        "icon": "$(collapse-all)"
       }
     ],
     "viewsContainers": {
@@ -382,6 +397,26 @@
           "command": "flutterWrappers.openSettings",
           "when": "view == flutterWrappers",
           "group": "navigation"
+        },
+        {
+          "command": "flutterWrappers.widgetTree.toggleViewMode",
+          "when": "view == flutterWidgetTree",
+          "group": "navigation@1"
+        },
+        {
+          "command": "flutterWrappers.widgetTree.expandAll",
+          "when": "view == flutterWidgetTree",
+          "group": "navigation@2"
+        },
+        {
+          "command": "flutterWrappers.widgetTree.collapseAll",
+          "when": "view == flutterWidgetTree",
+          "group": "navigation@3"
+        },
+        {
+          "command": "flutterWrappers.refresh",
+          "when": "view == flutterWidgetTree",
+          "group": "navigation@4"
         }
       ],
       "view/item/context": [
