@@ -1,6 +1,6 @@
 {
   "name": "vscode-extension",
-  "publisher": "ymedero90",
+  "publisher": "YoelMedero",
   "displayName": "Flutter Widget Wrapper",
   "description": "Wrap Flutter widgets with common layout and styling widgets quickly",
   "version": "1.0.0",
