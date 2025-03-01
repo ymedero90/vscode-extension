@@ -200,6 +200,11 @@
         "command": "flutterWrappers.widgetTree.collapseAll",
         "title": "Collapse All Nodes",
         "icon": "$(collapse-all)"
+      },
+      {
+        "command": "flutterWrappers.widgetTree.syncWithCursor",
+        "title": "Sync Tree with Cursor Position",
+        "icon": "$(symbol-reference)"
       }
     ],
     "viewsContainers": {
@@ -417,6 +422,11 @@
           "command": "flutterWrappers.refresh",
           "when": "view == flutterWidgetTree",
           "group": "navigation@4"
+        },
+        {
+          "command": "flutterWrappers.widgetTree.syncWithCursor",
+          "when": "view == flutterWidgetTree",
+          "group": "navigation@5"
         }
       ],
       "view/item/context": [
@@ -668,10 +678,10 @@
     "package": "npm run vsce-package"
   },
   "devDependencies": {
-    "@types/vscode": "^1.60.0",
     "@types/node": "^14.0.0",
-    "generator-code": "^1.11.6",
-    "yo": "^5.1.0",
-    "eslint": "^8.36.0"
+    "@types/vscode": "^1.60.0",
+    "eslint": "^8.36.0",
+    "generator-code": "^1.4.18",
+    "yo": "^1.4.2"
   }
 }

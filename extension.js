@@ -3,6 +3,8 @@ const { registerCommands } = require('./src/commands/register-commands');
 const { CodeActionWrapProvider } = require('./src/code-actions/wrapper-provider');
 const { WrappersViewProvider } = require('./src/views/wrappers-view-provider');
 const { WidgetTreeProvider } = require('./src/views/widget-tree-provider');
+const TreeViewUtils = require('./src/views/tree-view-utils');
+const TreeForceUpdate = require('./src/utils/tree-force-update');
 const {
     initializeWrapperStates,
     toggleWrapperState,
@@ -37,14 +39,17 @@ function activate(context) {
     // Create and register view provider for the widget tree
     const widgetTreeProvider = new WidgetTreeProvider();
 
-    // Registrar el TreeView y guardar la referencia
-    const treeView = vscode.window.createTreeView('flutterWidgetTree', {
+    // Register the tree view with enhanced options
+    const widgetTreeView = vscode.window.createTreeView('flutterWidgetTree', {
         treeDataProvider: widgetTreeProvider,
         showCollapseAll: true
     });
 
-    // Establecer la referencia al TreeView en el provider
-    widgetTreeProvider.setTreeView(treeView);
+    // Store the tree view reference in the provider
+    widgetTreeProvider.setTreeView(widgetTreeView);
+
+    // Configure tree view for improved horizontal scrolling
+    TreeViewUtils.configureTreeViewScrolling(widgetTreeView);
 
     console.log('Widget tree view provider registered');
 
@@ -64,40 +69,66 @@ function activate(context) {
         })
     );
 
-    // Reemplazar los comandos de expandAll y collapseAll
+    // Add an improved command to sync the tree with the current cursor position
     context.subscriptions.push(
-        vscode.commands.registerCommand('flutterWrappers.widgetTree.expandAll', async () => {
-            vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: "Expandiendo árbol...",
-                cancellable: false
-            }, async (progress) => {
+        vscode.commands.registerCommand('flutterWrappers.widgetTree.syncWithCursor', async () => {
+            const editor = vscode.window.activeTextEditor;
+            if (editor) {
+                // First ensure the tree view is visible
+                await TreeViewUtils.ensureTreeViewVisible('flutterWidgetTree');
+                
                 try {
-                    await widgetTreeProvider.expandAll();
-                    vscode.window.showInformationMessage('Árbol expandido');
+                    console.log('[FlutterWrappers] Manual sync with cursor requested');
+                    
+                    // Get current cursor position
+                    const cursorLine = editor.selection.active.line;
+                    const filePath = editor.document.uri.fsPath;
+                    
+                    // Use direct sync approach rather than the regular method
+                    await widgetTreeProvider.syncCursorPositionWithTree(editor);
+                    
+                    vscode.window.showInformationMessage('Widget tree synced with cursor position');
                 } catch (error) {
-                    console.error('Error expandiendo árbol:', error);
-                    vscode.window.showErrorMessage('Error al expandir el árbol');
+                    console.error('[FlutterWrappers] Error syncing with cursor:', error);
+                    vscode.window.showErrorMessage('Error syncing tree: ' + error.message);
                 }
-            });
+            } else {
+                vscode.window.showWarningMessage('No active editor found to sync with');
+            }
         })
     );
 
+    // Use simplified expand command 
+    context.subscriptions.push(
+        vscode.commands.registerCommand('flutterWrappers.widgetTree.expandAll', async () => {
+            try {
+                // Ensure tree view is visible
+                await TreeViewUtils.ensureTreeViewVisible('flutterWidgetTree');
+                
+                // Show an info message so users know something is happening
+                vscode.window.showInformationMessage('Expanding tree nodes...');
+                
+                // Call the simplified expand method
+                await widgetTreeProvider.expandAll();
+                
+            } catch (error) {
+                console.error('[FlutterWrappers] Error in expandAll command:', error);
+                vscode.window.showErrorMessage('Error expanding tree: ' + error.message);
+            }
+        })
+    );
+
+    // Update the collapse command to also use the optimized version
     context.subscriptions.push(
         vscode.commands.registerCommand('flutterWrappers.widgetTree.collapseAll', async () => {
-            vscode.window.withProgress({
-                location: vscode.ProgressLocation.Notification,
-                title: "Colapsando árbol...",
-                cancellable: false
-            }, async (progress) => {
-                try {
-                    await widgetTreeProvider.collapseAll();
-                    vscode.window.showInformationMessage('Árbol colapsado');
-                } catch (error) {
-                    console.error('Error colapsando árbol:', error);
-                    vscode.window.showErrorMessage('Error al colapsar el árbol');
-                }
-            });
+            try {
+                await TreeViewUtils.ensureTreeViewVisible('flutterWidgetTree');
+                await widgetTreeProvider.collapseAll();
+                vscode.window.showInformationMessage('Widget tree collapsed');
+            } catch (error) {
+                console.error('Error in collapseAll command:', error);
+                vscode.window.showErrorMessage('Error collapsing tree: ' + error.message);
+            }
         })
     );
 
@@ -260,6 +291,20 @@ function activate(context) {
             wrappersViewProvider.refresh();
         })
     );
+
+    // Add a listener for when the treeView becomes visible 
+    widgetTreeView.onDidChangeVisibility(async (event) => {
+        if (event.visible) {
+            // When tree becomes visible, try to sync with active editor
+            const editor = vscode.window.activeTextEditor;
+            if (editor && editor.document.languageId === 'dart') {
+                // Short delay to ensure tree is fully loaded
+                setTimeout(() => {
+                    widgetTreeProvider.syncEditorWithTree(editor);
+                }, 300);
+            }
+        }
+    });
 }
 
 /**

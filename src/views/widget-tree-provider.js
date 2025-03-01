@@ -54,6 +54,22 @@ class WidgetTreeProvider {
 
         // Add cleanup interval
         setInterval(() => this.cleanupCache(), 300000); // Clean every 5 minutes
+
+        // Track the current editor positions to sync with tree 
+        this.editorCursorListeners = [];
+
+        // Watch for cursor position changes - fix by using a more direct approach
+        this.registerCursorPositionListener();
+
+        // Fix: Add a direct event listener for cursor movements that's more reliable
+        vscode.window.onDidChangeActiveTextEditor(editor => {
+            if (editor) {
+                this.syncEditorWithTree(editor);
+            }
+        });
+        
+        // Flag to track if we're currently processing a sync (prevent loops)
+        this.isSyncing = false;
     }
 
     // Add cache cleanup method
@@ -69,7 +85,25 @@ class WidgetTreeProvider {
 
     refresh() {
         console.log(`Refreshing widget tree view (Expand: ${this.forceExpandAll}, Collapse: ${this.forceCollapseAll})`);
+        
+        // Force a complete refresh by not passing any element
         this._onDidChangeTreeData.fire(undefined);
+        
+        // Reset expansion flags after a short delay to prevent them from affecting
+        // subsequent refreshes unintentionally
+        if (this.forceExpandAll || this.forceCollapseAll || this.lastOperation) {
+            setTimeout(() => {
+                if (this.lastOperation === 'expand') {
+                    // Keep expanded nodes in state
+                } else if (this.lastOperation === 'collapse') {
+                    // Keep collapsed state
+                } else {
+                    // Reset if it's a normal refresh
+                    this.forceExpandAll = false;
+                    this.forceCollapseAll = false;
+                }
+            }, 300);
+        }
     }
 
     getTreeItem(element) {
@@ -137,8 +171,32 @@ class WidgetTreeProvider {
      * @param {number} depth The depth of the node
      * @returns {vscode.TreeItemCollapsibleState} The collapsible state
      */
-    getCollapsibleState(depth) {
-        const nodeId = `${this.treeItems[depth]?.metadata?.filePath}${this.treeItems[depth]?.metadata?.line}`;
+    getCollapsibleState(depth, item) {
+        // Enhanced logging for deeper debugging on specific items
+        if (item && item.metadata && (this.forceExpandAll || this.forceCollapseAll)) {
+            const nodeId = item && item.metadata ? 
+                `${item.metadata.filePath}${item.metadata.line}` : 'unknown';
+            
+            console.log(`[Tree] State for ${item.metadata.widgetName} (${nodeId}): ` + 
+                        `expand=${this.forceExpandAll}, collapse=${this.forceCollapseAll}, ` +
+                        `in expandedNodes=${this.expandedNodes.has(nodeId)}`);
+        }
+        
+        // Always prioritize expansion during expandAll operation
+        if (this.forceExpandAll) {
+            console.log(`[Tree] Forcing EXPANDED state for item`);
+            return vscode.TreeItemCollapsibleState.Expanded;
+        }
+        
+        // Force collapse has second highest priority
+        if (this.forceCollapseAll) {
+            return vscode.TreeItemCollapsibleState.Collapsed;
+        }
+        
+        // Use item-specific node ID if available
+        const nodeId = item && item.metadata ? 
+            `${item.metadata.filePath}${item.metadata.line}` : 
+            `${this.treeItems[depth]?.metadata?.filePath}${this.treeItems[depth]?.metadata?.line}`;
 
         if (this.lastOperation === 'expand') {
             return vscode.TreeItemCollapsibleState.Expanded;
@@ -220,12 +278,16 @@ class WidgetTreeProvider {
                 // Determine if this widget should be initially expanded
                 const currentDepth = widgetStack.length;
 
-                // Use our new method to get the collapsible state
-                const collapsibleState = this.getCollapsibleState(currentDepth);
-
                 // Create a tree item for this widget with compact or detailed display
                 const treeItem = this.createWidgetTreeItem(widgetName, line, fileName, filePath, widgetDetails, widgetNameStart);
-                treeItem.collapsibleState = collapsibleState;
+                
+                // During forced expand state, always set to expanded directly
+                if (this.forceExpandAll) {
+                    treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+                } else {
+                    // Pass the actual item to getCollapsibleState for more accurate state determination
+                    treeItem.collapsibleState = this.getCollapsibleState(currentDepth, treeItem);
+                }
 
                 // Agregar a nuestra caché de elementos
                 this.treeItems.push(treeItem);
@@ -358,16 +420,34 @@ class WidgetTreeProvider {
         };
         treeItem.children = [];
 
-        // Determinar estado de expansión basado en nuestro registro
+        // Determinar estado de expansión basado en nuestro registro y los flags forzados
         const nodeId = filePath + line;
         const hasChildren = this.treeItems.some(item =>
             item.metadata?.parentId === nodeId
         );
 
-        if (hasChildren) {
-            treeItem.collapsibleState = this.getCollapsibleState(this.treeItems.length);
+        // Make sure collapsible state is applied directly based on our forced settings
+        if (this.forceExpandAll && treeItem.children && treeItem.children.length > 0) {
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Expanded;
+        } else if (this.forceCollapseAll && treeItem.children && treeItem.children.length > 0) {
+            treeItem.collapsibleState = vscode.TreeItemCollapsibleState.Collapsed;
+        } else if (hasChildren) {
+            // Pass the actual item to getCollapsibleState
+            treeItem.collapsibleState = this.getCollapsibleState(this.treeItems.length, treeItem);
         } else {
             treeItem.collapsibleState = vscode.TreeItemCollapsibleState.None;
+        }
+
+        // Enhanced tooltip with horizontal scrolling hint
+        let tooltip = this.formatWidgetTooltip(widgetName, fileName, line, details);
+        tooltip += "\n\nTip: Hover at tree edges to reveal horizontal scrolling";
+        treeItem.tooltip = tooltip;
+
+        // Add more details to the label for better horizontal content
+        if (this.compactMode && details && details.props) {
+            // Add some key properties to make horizontal scrolling more useful
+            const shortProps = details.props.substring(0, 20) + (details.props.length > 20 ? '...' : '');
+            treeItem.description = `${treeItem.description} - ${shortProps}`;
         }
 
         return treeItem;
@@ -500,40 +580,87 @@ class WidgetTreeProvider {
     }
 
     /**
-     * Expande todos los nodos del árbol
+     * Expande todos los nodos del árbol - COMPLETELY REWRITTEN FOR RELIABILITY
      */
     async expandAll() {
-        console.log('Expanding all nodes...');
-        this.lastOperation = 'expand';
-        this.expandedNodes.clear(); // Reiniciar el estado
-
-        // Forzar estado expandido para cada ítem
-        this.treeItems.forEach(item => {
-            this.expandedNodes.add(item.metadata?.filePath + item.metadata?.line);
-        });
-
-        // Notificar cambios
-        this._onDidChangeTreeData.fire();
-
-        // Esperar un momento y refrescar de nuevo para asegurar la expansión
-        await new Promise(resolve => setTimeout(resolve, 100));
-        this._onDidChangeTreeData.fire();
+        console.log('[Widget Tree] Expanding all nodes - SIMPLIFIED VERSION');
+        
+        try {
+            // Clear tracking state and set flags
+            this.lastOperation = 'expand';
+            this.forceExpandAll = true;
+            this.forceCollapseAll = false;
+            
+            // Simplified approach: pre-mark all possible nodes as expanded
+            this.expandedNodes.clear();
+            this.treeItems.forEach(item => {
+                if (item.metadata?.id) {
+                    this.expandedNodes.add(item.metadata.id);
+                }
+            });
+            
+            // Force the tree to refresh with new expansion state
+            this._onDidChangeTreeData.fire();
+            
+            // Give time for the UI to update
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Use VS Code's built-in command as a backup
+            try {
+                await vscode.commands.executeCommand('list.expandAll');
+            } catch (err) {
+                console.log('[Widget Tree] Native expand all command failed, using fallback', err);
+                
+                // If that fails, try revealing root items with expand option
+                if (this.treeView) {
+                    const rootItems = await this.getChildren();
+                    if (rootItems && rootItems.length > 0) {
+                        for (const rootItem of rootItems) {
+                            await this.treeView.reveal(rootItem, { expand: true });
+                            // Short delay between reveals to avoid UI freezes
+                            await new Promise(r => setTimeout(r, 10));
+                        }
+                    }
+                }
+            }
+            
+            // Send a final refresh to ensure UI is up to date
+            this._onDidChangeTreeData.fire();
+        } catch (error) {
+            console.error('[Widget Tree] Error in expandAll:', error);
+            // Reset flags in case of error
+            this.forceExpandAll = false;
+        }
     }
 
     /**
      * Colapsa todos los nodos del árbol
      */
     async collapseAll() {
-        console.log('Collapsing all nodes...');
+        console.log('Collapsing all nodes - OPTIMIZED VERSION');
+        
+        // Set states
         this.lastOperation = 'collapse';
+        this.forceExpandAll = false;
+        this.forceCollapseAll = true;
         this.expandedNodes.clear();
-
-        // Notificar cambios
+        
+        // Single refresh
         this._onDidChangeTreeData.fire();
-
-        // Esperar un momento y refrescar de nuevo para asegurar el colapso
-        await new Promise(resolve => setTimeout(resolve, 100));
-        this._onDidChangeTreeData.fire();
+        
+        try {
+            // Execute VS Code's command
+            if (this.treeView) {
+                await vscode.commands.executeCommand('list.collapseAll');
+            }
+        } catch (err) {
+            console.log('Could not use list.collapseAll command');
+        }
+        
+        // Reset the flags after operation completes
+        setTimeout(() => {
+            this.forceCollapseAll = false;
+        }, 300);
     }
 
     /**
@@ -636,6 +763,26 @@ class WidgetTreeProvider {
      */
     setTreeView(treeView) {
         this.treeView = treeView;
+        
+        // Add reveal listener to track expanded state
+        if (treeView) {
+            // Track when nodes are expanded or collapsed by user
+            treeView.onDidExpandElement(e => {
+                if (e.element.metadata?.id) {
+                    // Add to our expanded nodes set
+                    this.expandedNodes.add(e.element.metadata.id);
+                    console.log(`[Tree] User expanded: ${e.element.metadata.widgetName}`);
+                }
+            });
+            
+            treeView.onDidCollapseElement(e => {
+                if (e.element.metadata?.id) {
+                    // Remove from our expanded nodes set
+                    this.expandedNodes.delete(e.element.metadata.id);
+                    console.log(`[Tree] User collapsed: ${e.element.metadata.widgetName}`);
+                }
+            });
+        }
     }
 
     /**
@@ -657,6 +804,265 @@ class WidgetTreeProvider {
     dispose() {
         this.treeItemsCache.clear();
         this._onDidChangeTreeData.dispose();
+        this.editorCursorListeners.forEach(d => d.dispose());
+    }
+
+    /**
+     * Debug helper to log the tree state
+     */
+    logTreeState() {
+        console.log('--- TREE STATE DEBUG ---');
+        console.log('forceExpandAll:', this.forceExpandAll);
+        console.log('forceCollapseAll:', this.forceCollapseAll);
+        console.log('lastOperation:', this.lastOperation);
+        console.log('expandedNodes count:', this.expandedNodes.size);
+        console.log('Tree items count:', this.treeItems.length);
+        
+        // Sample of expansion states
+        if (this.treeItems.length > 0) {
+            console.log('First 3 items expansion states:');
+            this.treeItems.slice(0, 3).forEach(item => {
+                console.log(`- ${item.metadata?.widgetName}: ${
+                    item.collapsibleState === 1 ? 'Expanded' :
+                    item.collapsibleState === 2 ? 'Collapsed' : 'None'
+                }`);
+            });
+        }
+        console.log('----------------------');
+    }
+
+    /**
+     * Register a listener for cursor position changes in the editor - FIXED
+     */
+    registerCursorPositionListener() {
+        // Dispose any existing listeners
+        this.editorCursorListeners.forEach(d => d.dispose());
+        this.editorCursorListeners = [];
+
+        console.log('[Widget Tree] Registering cursor position listener');
+        
+        // Watch for selection changes in the editor with improved reliability
+        const selectionListener = vscode.window.onDidChangeTextEditorSelection(event => {
+            if (!this.isSyncing && event.textEditor === vscode.window.activeTextEditor) {
+                // Use throttling instead of debouncing for more responsive updates
+                clearTimeout(this.cursorSyncTimeout);
+                this.cursorSyncTimeout = setTimeout(() => {
+                    try {
+                        console.log('[Widget Tree] Cursor position changed, syncing tree');
+                        this.syncCursorPositionWithTree(event.textEditor);
+                    } catch (error) {
+                        console.error('[Widget Tree] Error syncing with cursor:', error);
+                    }
+                }, 200); // Slightly faster throttle time
+            }
+        });
+
+        this.editorCursorListeners.push(selectionListener);
+    }
+
+    /**
+     * Synchronize the editor cursor position with the tree view - FIXED
+     * @param {vscode.TextEditor} editor The active text editor
+     */
+    async syncCursorPositionWithTree(editor) {
+        if (!this.treeView || !editor || !this.treeItems || this.treeItems.length === 0) {
+            console.log('[Widget Tree] Cannot sync: Missing tree view, editor, or tree items');
+            return;
+        }
+
+        try {
+            // Set syncing flag to prevent recursive calls
+            this.isSyncing = true;
+            
+            const cursorLine = editor.selection.active.line;
+            const filePath = editor.document.uri.fsPath;
+            
+            console.log(`[Widget Tree] Syncing cursor at line ${cursorLine} in ${path.basename(filePath)}`);
+            
+            // Find the closest widget to the cursor position with improved debug logging
+            const closestWidget = this.findClosestWidgetToCursor(cursorLine, filePath);
+            
+            if (closestWidget) {
+                console.log(`[Widget Tree] Found widget: ${closestWidget.metadata?.widgetName} at line ${closestWidget.metadata?.line}`);
+                
+                // Make sure parent nodes are expanded
+                await this.ensureParentNodesExpanded(closestWidget);
+                
+                // Reveal the item in the tree - use a direct reveal with less options for reliability
+                if (this.treeView.visible) {
+                    await this.treeView.reveal(closestWidget, {
+                        select: true,
+                        focus: false
+                    });
+                    console.log('[Widget Tree] Item revealed in tree');
+                } else {
+                    console.log('[Widget Tree] Tree view not visible, skipping reveal');
+                }
+            } else {
+                console.log('[Widget Tree] No matching widget found for current cursor position');
+            }
+        } catch (error) {
+            console.error('[Widget Tree] Error syncing cursor with tree:', error);
+        } finally {
+            // Reset syncing flag
+            this.isSyncing = false;
+        }
+    }
+
+    /**
+     * Find the closest widget in the tree to the current cursor position - FIXED
+     */
+    findClosestWidgetToCursor(cursorLine, filePath) {
+        if (!this.treeItems || this.treeItems.length === 0) {
+            console.log('[Widget Tree] No tree items available');
+            return null;
+        }
+
+        // Debug info
+        console.log(`[Widget Tree] Finding widget near line ${cursorLine} in ${path.basename(filePath)}`);
+        console.log(`[Widget Tree] Total tree items: ${this.treeItems.length}`);
+
+        // Filter items from the same file
+        const fileItems = this.treeItems.filter(item => 
+            item.metadata?.filePath === filePath);
+        
+        console.log(`[Widget Tree] Found ${fileItems.length} items from the same file`);
+        
+        if (!fileItems.length) {
+            return null;
+        }
+        
+        // First try: exact match
+        let match = fileItems.find(item => item.metadata.line === cursorLine);
+        
+        if (match) {
+            console.log(`[Widget Tree] Found exact match: ${match.metadata.widgetName}`);
+            return match;
+        }
+        
+        // Second try: find nearest item above cursor (preferred)
+        let closestItem = null;
+        let minDistance = Number.MAX_VALUE;
+        
+        for (const item of fileItems) {
+            // Prefer items that are before the cursor
+            if (item.metadata.line <= cursorLine) {
+                const distance = cursorLine - item.metadata.line;
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    closestItem = item;
+                }
+            }
+        }
+        
+        // If found an item above cursor
+        if (closestItem) {
+            console.log(`[Widget Tree] Found closest widget above: ${closestItem.metadata.widgetName} (${minDistance} lines away)`);
+            return closestItem;
+        }
+        
+        // If nothing found above, take the nearest item
+        minDistance = Number.MAX_VALUE;
+        for (const item of fileItems) {
+            const distance = Math.abs(item.metadata.line - cursorLine);
+            if (distance < minDistance) {
+                minDistance = distance;
+                closestItem = item;
+            }
+        }
+        
+        if (closestItem) {
+            console.log(`[Widget Tree] Found nearest widget: ${closestItem.metadata.widgetName} (${minDistance} lines away)`);
+        } else {
+            console.log('[Widget Tree] No suitable widget found');
+        }
+        
+        return closestItem;
+    }
+
+    /**
+     * Ensure that all parent nodes of an item are expanded - FIXED
+     */
+    async ensureParentNodesExpanded(item) {
+        if (!item || !item.metadata) {
+            return;
+        }
+        
+        try {
+            // Track all parent IDs that need to be expanded
+            const parentsToExpand = [];
+            let currentParentId = item.metadata.parentId;
+            
+            // Collect all parent IDs
+            while (currentParentId) {
+                parentsToExpand.push(currentParentId);
+                
+                // Find the parent item
+                const parentItem = this.treeItems.find(i => i.metadata?.id === currentParentId);
+                if (!parentItem) break;
+                
+                // Move up to the next parent
+                currentParentId = parentItem.metadata.parentId;
+            }
+            
+            if (parentsToExpand.length > 0) {
+                console.log(`[Widget Tree] Expanding ${parentsToExpand.length} parent nodes`);
+                
+                // Add all parents to expanded nodes set
+                parentsToExpand.forEach(id => {
+                    this.expandedNodes.add(id);
+                });
+                
+                // Refresh to apply expanded states
+                this._onDidChangeTreeData.fire();
+                
+                // Short delay to let the UI catch up
+                await new Promise(resolve => setTimeout(resolve, 50));
+            }
+        } catch (error) {
+            console.error('[Widget Tree] Error ensuring parents expanded:', error);
+        }
+    }
+
+    /**
+     * Helper to directly sync an editor with the tree without waiting for cursor events
+     */
+    syncEditorWithTree(editor) {
+        if (!editor) return;
+        
+        // Small delay to let any document load
+        setTimeout(() => {
+            // Only sync if not already syncing and editor still active
+            if (!this.isSyncing && editor === vscode.window.activeTextEditor) {
+                this.syncCursorPositionWithTree(editor);
+            }
+        }, 300);
+    }
+
+    /**
+     * Scroll to a specific item in the tree
+     * @param {vscode.TreeItem} item The item to scroll to
+     */
+    async scrollToItem(item) {
+        if (!this.treeView || !item) return;
+        
+        try {
+            await this.treeView.reveal(item, { 
+                select: true,
+                focus: false
+            });
+        } catch (error) {
+            console.error('Error scrolling to item:', error);
+        }
+    }
+
+    // Add method to scroll to an item by line number and file path
+    async scrollToPosition(filePath, line) {
+        const item = this.findClosestWidgetToCursor(line, filePath);
+        if (item) {
+            await this.ensureParentNodesExpanded(item);
+            await this.scrollToItem(item);
+        }
     }
 }
 
